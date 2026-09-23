@@ -2,12 +2,25 @@ schema: spec-driven
 
 # Project context (optional)
 # This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
+context: |
+  Projeto: system-design-rag-enterprise — um NotebookLM simplificado. Plataforma para agrupar
+  fontes de conhecimento (sources) dentro de notebooks e conversar, via chat com streaming (SSE),
+  com um assistente de IA fundamentado (RAG) nesse conteúdo.
+
+  Documentação de fundação do projeto (ler antes de propor mudanças):
+    - DOMAIN.md: entidades, relacionamentos e regras de negócio
+    - API.md: funcionalidades e contratos entre frontend e backend
+    - ARCHITECTURE.md: visão de alto nível da arquitetura, componentes e decisões/riscos
+
+  Stack e infraestrutura: Spring AI (orquestração de IA), AWS como cloud, exposição via API
+  Gateway + Load Balancer, aplicação stateless, AWS Cognito (login federado Google/GitHub),
+  Amazon S3 (armazenamento de sources), PostgreSQL + pgvector (persistência relacional e
+  vetorial), Amazon SQS + AWS Lambda (pipeline de ingestão assíncrono, padrão async
+  request-reply), AWS Bedrock e OpenRouter (provedores de LLM via contrato compatível com a
+  API da OpenAI — configuração de sistema, não exposta ao usuário).
+
+  Fase atual: fundação do projeto (domínio, API e arquitetura definidos). Nenhuma
+  implementação de código foi iniciada ainda.
 
 # Per-artifact rules (optional)
 # Add custom rules for specific artifacts.
