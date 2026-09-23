@@ -24,10 +24,16 @@ Contratos funcionais expostos pelo backend ao frontend, organizados por área de
 - Em ambos os casos, o contrato responde de forma imediata (padrão *async request-reply*): o source é criado com status "processando", e a obtenção/extração de conteúdo, chunking e geração de embeddings ocorrem de forma assíncrona em segundo plano.
 - **Listar sources de um notebook**: retorna os sources associados a um notebook, incluindo origem, formato e status de processamento (painel "sources" da Tela 3) — usado pelo frontend para acompanhar a transição de status até "pronto".
 
+## Conversations
+
+- **Criar conversa**: inicia uma nova conversa (sessão de chat independente, com histórico próprio) dentro de um notebook.
+- **Listar conversas de um notebook**: retorna as conversas já iniciadas naquele notebook.
+- **Atualizar sources ativas da conversa**: define quais sources (dentre as que estão "prontas") ficam ativas como contexto de busca para as próximas mensagens da conversa; pode ser chamado a qualquer momento para alterar a seleção ao longo da conversa.
+
 ## Chat
 
-- **Enviar mensagem**: envia uma pergunta do usuário para o notebook atual, acompanhada da lista de sources selecionadas (dentre as que estão "prontas") para servir de contexto de busca naquela pergunta. A resposta é entregue via streaming (Server-Sent Events) entre backend e frontend, permitindo exibição incremental do texto gerado enquanto a resposta é produzida.
-- **Histórico de mensagens**: recuperação das mensagens já trocadas naquele notebook — incluindo quais sources estavam selecionadas em cada pergunta — para reconstrução da conversa ao reabrir a tela de chat.
+- **Enviar mensagem**: envia uma pergunta do usuário para uma conversa específica (`conversation_id`). A resposta é fundamentada nas sources atualmente ativas naquela conversa e entregue via streaming (Server-Sent Events) entre backend e frontend, permitindo exibição incremental do texto gerado enquanto a resposta é produzida.
+- **Histórico de mensagens**: recuperação das mensagens já trocadas naquela conversa, para reconstrução do chat ao reabri-la.
 
 ## Considerações Transversais
 

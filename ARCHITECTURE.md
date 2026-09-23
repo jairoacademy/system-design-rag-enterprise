@@ -103,7 +103,7 @@ O `Source` expõe um status de processamento (`recebido` → `processando` → `
 
 ### Seleção de sources no chat
 
-A busca semântica (RAG) de cada pergunta é escopada apenas às sources que o usuário selecionou explicitamente naquela interação, dentre as sources com status "pronto" do notebook — não existe um contexto implícito de "todas as sources".
+A busca semântica (RAG) de cada pergunta é escopada às sources que o usuário selecionou como ativas na conversa em que a pergunta foi feita, dentre as sources com status "pronto" do notebook — não existe um contexto implícito de "todas as sources". Essa seleção é definida por conversa (não redefinida a cada pergunta) e pode ser alterada pelo usuário ao longo dela, valendo para as mensagens seguintes.
 
 ### Abstração de provedor de LLM
 
