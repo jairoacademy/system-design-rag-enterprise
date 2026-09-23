@@ -19,8 +19,12 @@ context: |
   request-reply), AWS Bedrock e OpenRouter (provedores de LLM via contrato compatível com a
   API da OpenAI — configuração de sistema, não exposta ao usuário).
 
-  Fase atual: fundação do projeto (domínio, API e arquitetura definidos). Nenhuma
-  implementação de código foi iniciada ainda.
+  Fase atual: fundação (domínio, API e arquitetura) definida, e a implementação já começou.
+  `app/backend` tem o scaffold inicial (Spring Boot + Spring AI, dependências de
+  PostgreSQL/pgvector já configuradas), ainda sem lógica de negócio. `app/frontend` e `infra/`
+  ainda são placeholders vazios. Novas changes que tocam comportamento do backend devem
+  declarar capabilities e gerar specs normalmente (não usar skip_specs, que só se justificava
+  enquanto não havia sistema em construção).
 
 # Per-artifact rules (optional)
 # Add custom rules for specific artifacts.

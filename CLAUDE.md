@@ -14,6 +14,10 @@ Notebook LM simplificado: uma plataforma para agrupar fontes de conhecimento (*s
 ├── DOMAIN.md             <- entidades, relacionamentos e regras de negócio
 ├── API.md                <- funcionalidades e contratos da API
 ├── ARCHITECTURE.md       <- visão de alto nível da arquitetura e relação entre serviços
+├── app/
+│   ├── backend/          <- aplicação backend (Spring AI, PostgreSQL + pgvector)
+│   └── frontend/         <- aplicação frontend
+├── infra/                <- infraestrutura como código
 └── openspec/
     ├── config.yaml        <- configuração do processo de spec-driven development
     ├── specs/              <- capabilities especificadas (incremental)
@@ -26,4 +30,4 @@ Notebook LM simplificado: uma plataforma para agrupar fontes de conhecimento (*s
 
 ## Estado do Projeto
 
-Fase de fundação: apenas documentação de domínio, API e arquitetura definida. Nenhuma implementação de código foi iniciada ainda. Mudanças incrementais a partir daqui devem ser propostas via OpenSpec (`openspec/`).
+Fundação (domínio, API e arquitetura) definida, e a implementação começou: `app/backend` já tem o scaffold inicial do backend (Spring Boot + Spring AI, dependências de PostgreSQL/pgvector já configuradas), sem lógica de negócio ainda. `app/frontend` e `infra/` ainda são placeholders vazios. Mudanças incrementais a partir daqui devem ser propostas via OpenSpec (`openspec/`), incluindo specs de comportamento (não mais dispensáveis via `skip_specs`, já que agora há um sistema em construção).
