@@ -1,0 +1,45 @@
+# Ambiente local do backend. Os valores aqui sao os mesmos defaults do
+# application.yml, entao `docker compose up` + `./mvnw spring-boot:run`
+# funciona sem exportar nada alem da chave do provedor de LLM.
+#
+# Alterou o init.sql? Ele so roda com o volume vazio: `docker compose down -v`.
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg18
+    environment:
+      POSTGRES_DB: ragdb
+      POSTGRES_USER: rag
+      POSTGRES_PASSWORD: rag
+    ports:
+      - "5432:5432"
+    volumes:
+      # PG 18+ espera o mount em /var/lib/postgresql (os dados vao para um
+      # subdiretorio por versao). Em 17 e anteriores era /var/lib/postgresql/data.
+      - postgres-data:/var/lib/postgresql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rag -d ragdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Emulador local de AWS (S3, SQS, Cognito). Nenhuma dependencia da aplicacao
+  # fala com ele ainda: entra junto com o codigo que usar esses servicos.
+  floci:
+    image: floci/floci:2.1.0
+    environment:
+      FLOCI_STORAGE_MODE: memory
+      FLOCI_HOSTNAME: floci
+    ports:
+      - "4566:4566"
+    # A imagem native do Quarkus nao tem curl, wget nem grep; o check e HTTP puro,
+    # so com builtins do bash.
+    healthcheck:
+      test: ['CMD', 'bash', '-c', 'exec 3<>/dev/tcp/127.0.0.1/4566 && printf "GET /_floci/health HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n" >&3 && read -r line <&3 && [[ $$line == *"200 OK"* ]]']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres-data:

@@ -1,0 +1,54 @@
+# Toda configuracao e parametrizada por variavel de ambiente, no formato ${VAR:default}.
+# Os defaults sao exatamente o que local/docker-compose.yml sobe, entao rodar a aplicacao
+# localmente nao exige exportar nada alem de SPRING_AI_OPENAI_API_KEY.
+# Na cloud nada aqui muda: as mesmas variaveis sao injetadas pelo ambiente de execucao.
+
+spring:
+  application:
+    name: spring-rag-enterprise
+
+  datasource:
+    url: "${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/ragdb}"
+    username: "${SPRING_DATASOURCE_USERNAME:rag}"
+    password: "${SPRING_DATASOURCE_PASSWORD:rag}"
+
+  jpa:
+    hibernate:
+      # O schema pertence ao local/init.sql, nao ao Hibernate. `validate` faz o boot
+      # falhar quando entidade e tabela divergem, em vez de alterar a tabela em silencio.
+      ddl-auto: "${JPA_DDL_AUTO:validate}"
+
+  ai:
+    vectorstore:
+      pgvector:
+        dimensions: "${PGVECTOR_DIMENSIONS:1536}"
+        index-type: "${PGVECTOR_INDEX_TYPE:HNSW}"
+        distance-type: "${PGVECTOR_DISTANCE_TYPE:COSINE_DISTANCE}"
+        initialize-schema: "${PGVECTOR_INITIALIZE_SCHEMA:true}"
+
+    # Provedor de LLM via contrato compativel com a API da OpenAI. Trocar entre
+    # Bedrock e OpenRouter e trocar base-url, chave e nome do modelo.
+    openai:
+      base-url: "${SPRING_AI_OPENAI_BASE_URL:https://openrouter.ai/api}"
+      api-key: "${SPRING_AI_OPENAI_API_KEY}"
+      chat:
+        options:
+          model: "${LLM_CHAT_MODEL:openai/gpt-4o-mini}"
+      embedding:
+        options:
+          model: "${LLM_EMBEDDING_MODEL:openai/text-embedding-3-small}"
+
+server:
+  port: "${SERVER_PORT:8080}"
+
+# Health para o Load Balancer. Apenas health e exposto: env, beans e configprops
+# revelam configuracao interna e o endpoint precisa ser acessivel sem autenticacao.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+      show-components: never
