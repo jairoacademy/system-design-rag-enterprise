@@ -35,9 +35,9 @@ Fonte de conhecimento dentro de um `Notebook`, originada de um arquivo enviado (
 - notebook ao qual pertence
 - nome (de exibição, definido pelo usuário ou derivado do arquivo/URL)
 - origem (arquivo enviado ou URL da web)
-- formato (PDF, Markdown, DOCX ou página web)
+- formato (PDF, Markdown, DOCX ou página web) — atributo interno de domínio, não exposto na API v1
 - referência de armazenamento: chave do arquivo no S3 (quando a origem é um arquivo) ou a URL de origem (quando a origem é uma URL da web)
-- status de processamento (recebido → processando → pronto → falhou)
+- status de processamento: recebido (`PENDING`) → processando (`PROCESSING`) → pronto (`READY`) → falhou (`FAILED`). Os valores entre crases são os canônicos, usados no contrato da API
 - mensagem de erro (preenchida quando o status é "falhou")
 - data de envio
 
@@ -87,18 +87,19 @@ Conversation (N) ----- (N) Source   [sources ativas na conversa]
 Visão de schema (tabelas, chaves e colunas), complementar à visão conceitual acima — referência para quando a implementação de persistência começar.
 
 ```
-┌──────────────┐  1    N  ┌──────────────────┐  1    N  ┌──────────────────────────┐
-│    users     │──────────│    notebooks     │──────────│         sources          │
-├──────────────┤          ├──────────────────┤          ├──────────────────────────┤
-│ id (PK)      │          │ id (PK)          │          │ id (PK)                  │
-│ cognito_sub  │          │ owner_id (FK)    │          │ notebook_id (FK)         │
-│ email        │          │ name             │          │ name                     │
-│ name         │          │ description      │          │ type                     │
-│ created_at   │          │ created_at       │          │ s3_key                   │
-└──────────────┘          │ updated_at       │          │ url                      │
-                          └──────────────────┘          │ status                   │
-                                    │                    │ error_message            │
-                                    │ 1                  │ created_at               │
+┌──────────────┐  1    N  ┌──────────────────┐  1    N   ┌──────────────────────────┐
+│    users     │──────────│    notebooks     │───────────│         sources          │
+├──────────────┤          ├──────────────────┤           ├──────────────────────────┤
+│ id (PK)      │          │ id (PK)          │           │ id (PK)                  │
+│ cognito_sub  │          │ owner_id (FK)    │           │ notebook_id (FK)         │
+│ email        │          │ name             │           │ name                     │
+│ name         │          │ description      │           │ type                     │
+│ created_at   │          │ created_at       │           │ format                   │
+└──────────────┘          │ updated_at       │           │ s3_key                   │
+                          └──────────────────┘           │ url                      │
+                                    │                    │ status                   │
+                                    │ 1                  │ error_message            │
+                                    │                    │ created_at               │
                                     │                    └──────────────────────────┘
                                     │                               │ 1
                                     │                               │ N
@@ -147,5 +148,10 @@ Visão de schema (tabelas, chaves e colunas), complementar à visão conceitual 
 4. O processamento de um `Source` (obtenção do conteúdo, chunking, geração de embeddings) é assíncrono: a criação do source é confirmada antes do processamento terminar, e o `Source` expõe um status até ficar pronto para uso; quando o processamento falha, uma mensagem de erro é registrada para diagnóstico.
 5. Um `Notebook` pode ter múltiplas `Conversation`s independentes; cada uma mantém seu próprio histórico de `ConversationMessage` e sua própria seleção de sources ativas.
 6. O usuário seleciona, para cada `Conversation`, quais sources (dentre as que estão com status "pronto") ficam ativas como contexto de busca; a seleção vale para a conversa como um todo — não é redefinida a cada mensagem — e pode ser alterada pelo usuário ao longo da conversa. Sources fora do status "pronto" não podem ser ativadas.
-7. O chat de uma `Conversation` só pode ser fundamentado (RAG) em `SourceChunk`s das sources ativas naquela conversa — nunca em sources de outro notebook.
-8. O histórico de `ConversationMessage` é persistido por `Conversation`, não pela sessão/conexão do usuário.
+7. A seleção de sources ativas de uma `Conversation` é **obrigatória e não pode ser vazia**: uma conversa nasce com pelo menos uma source ativa, e a alteração ao longo da conversa substitui a seleção, nunca a esvazia. Não existe contexto implícito de "todas as sources do notebook" — o escopo de busca é sempre uma lista explícita e persistida na conversa. Como consequência, um `Notebook` sem nenhuma source em status "pronto" não permite criar conversas.
+8. Quando uma source ativa é deletada, a `Conversation` é preservada: a source sai da seleção ativa e o histórico de `ConversationMessage` permanece íntegro e legível. Se a seleção ficar vazia, a conversa entra em estado sem seleção válida — novas mensagens são recusadas até que o usuário ative outra source "pronta", quando a conversa volta a ser utilizável. Esse estado é consequência observável da seleção vazia, não um atributo persistido da conversa.
+9. Deletar um `Notebook` remove em cascata todo o conteúdo derivado dele: seus `Source`s, os `SourceChunk`s dessas sources, suas `Conversation`s, as `ConversationMessage`s dessas conversas e os arquivos correspondentes no bucket S3. Nenhum desses dados permanece recuperável.
+10. Deletar um `Source` remove seus `SourceChunk`s e, quando a origem é um arquivo enviado, o arquivo correspondente no bucket S3.
+11. Não existe cadastro nem contrato de autenticação no domínio da aplicação: o `User` é provisionado *just-in-time* na primeira requisição autenticada cujo `cognito_sub` ainda não corresponda a um usuário registrado, a partir dos dados presentes no token. Login, logout e leitura de perfil são interação direta entre o cliente e o Cognito.
+12. O chat de uma `Conversation` só pode ser fundamentado (RAG) em `SourceChunk`s das sources ativas naquela conversa — nunca em sources de outro notebook.
+13. O histórico de `ConversationMessage` é persistido por `Conversation`, não pela sessão/conexão do usuário.
