@@ -29,6 +29,9 @@
 	<properties>
 		<java.version>21</java.version>
 		<spring-ai.version>2.0.1</spring-ai.version>
+		<jacoco.version>0.8.15</jacoco.version>
+		<pitest.version>1.30.0</pitest.version>
+		<pitest-junit5.version>1.2.3</pitest-junit5.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -89,6 +92,91 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+			</plugin>
+			<!-- Quality gate: cobertura de linha 100% no escopo de negocio. Ver .claude/skills/java-quality-gate. -->
+			<plugin>
+				<groupId>org.jacoco</groupId>
+				<artifactId>jacoco-maven-plugin</artifactId>
+				<version>${jacoco.version}</version>
+				<configuration>
+					<excludes>
+						<exclude>academy/jairo/ragenterprise/NotebooklmApplication.class</exclude>
+						<exclude>**/config/**</exclude>
+					</excludes>
+				</configuration>
+				<executions>
+					<execution>
+						<id>prepare-agent</id>
+						<goals>
+							<goal>prepare-agent</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>check</id>
+						<phase>verify</phase>
+						<goals>
+							<goal>report</goal>
+							<goal>check</goal>
+						</goals>
+						<configuration>
+							<rules>
+								<rule>
+									<element>BUNDLE</element>
+									<limits>
+										<limit>
+											<counter>LINE</counter>
+											<value>COVEREDRATIO</value>
+											<minimum>1.00</minimum>
+										</limit>
+									</limits>
+								</rule>
+							</rules>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<!-- Quality gate: 100% dos mutantes mortos no mesmo escopo. -->
+			<plugin>
+				<groupId>org.pitest</groupId>
+				<artifactId>pitest-maven</artifactId>
+				<version>${pitest.version}</version>
+				<dependencies>
+					<dependency>
+						<groupId>org.pitest</groupId>
+						<artifactId>pitest-junit5-plugin</artifactId>
+						<version>${pitest-junit5.version}</version>
+					</dependency>
+				</dependencies>
+				<configuration>
+					<targetClasses>
+						<param>academy.jairo.ragenterprise.*</param>
+					</targetClasses>
+					<excludedClasses>
+						<param>academy.jairo.ragenterprise.NotebooklmApplication</param>
+						<param>academy.jairo.ragenterprise.config.*</param>
+					</excludedClasses>
+					<!-- Teste de integracao sobe contexto Spring inteiro por mutante: caro demais para mutacao. -->
+					<excludedTestClasses>
+						<param>academy.jairo.ragenterprise.NotebooklmApplicationTests</param>
+					</excludedTestClasses>
+					<mutationThreshold>100</mutationThreshold>
+					<!-- Enquanto nao ha logica de negocio, ausencia de mutantes nao e falha. -->
+					<failWhenNoMutations>false</failWhenNoMutations>
+					<timestampedReports>false</timestampedReports>
+					<outputFormats>
+						<param>HTML</param>
+						<param>XML</param>
+					</outputFormats>
+				</configuration>
+				<executions>
+					<execution>
+						<id>mutation-coverage</id>
+						<phase>verify</phase>
+						<goals>
+							<goal>mutationCoverage</goal>
+						</goals>
+					</execution>
+				</executions>
 			</plugin>
 		</plugins>
 	</build>
