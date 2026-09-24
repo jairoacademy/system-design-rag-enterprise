@@ -1,4 +1,4 @@
-/ops# Arquitetura
+# Arquitetura
 
 ## Visão Geral
 
@@ -82,9 +82,11 @@ O AWS API Gateway (REST ou HTTP API) faz *buffering* de resposta e tem um teto d
 
 **Risco registrado**: o caminho de streaming do chat precisa de tratamento diferenciado dos demais endpoints — seja evitando o *buffering* do API Gateway nesse caminho específico, seja desenhando a resposta do chat para respeitar o teto de tempo imposto pelo gateway (ex.: eventos de *keep-alive*, respostas particionadas). Decisão a ser detalhada quando o desenho técnico avançar.
 
+**Status: aberto, sem mitigação decidida.** O contrato do chat em `API.md` inclui o header `X-Accel-Buffering: no` na resposta de streaming. Esse header instrui o *nginx* a não bufferizar e **não endereça este risco**: o buffering e o teto de timeout do API Gateway são independentes dele. Detalhar o contrato SSE não resolveu o problema arquitetural — a decisão continua pendente.
+
 ### Pipeline de ingestão assíncrono (async request-reply)
 
-O processamento de um source (obtenção do conteúdo, chunking, geração de embeddings) segue o padrão *async request-reply*: a requisição de criação do source responde imediatamente com o source em status "processando", e o processamento pesado ocorre em segundo plano através de uma fila (SQS) consumida por uma função assíncrona (Lambda). Isso vale tanto para sources de arquivo (PDF, Markdown, DOCX) quanto para sources de URL — nesse último caso, o processamento inclui uma etapa adicional de obtenção do conteúdo da página antes do chunking.
+O processamento de um source (obtenção do conteúdo, chunking, geração de embeddings) segue o padrão *async request-reply*: a requisição de criação do source responde imediatamente com o source em status "recebido" (`PENDING`), e o processamento pesado ocorre em segundo plano através de uma fila (SQS) consumida por uma função assíncrona (Lambda). Isso vale tanto para sources de arquivo (PDF, Markdown, DOCX) quanto para sources de URL — nesse último caso, o processamento inclui uma etapa adicional de obtenção do conteúdo da página antes do chunking.
 
 ```
 Criação de Source
@@ -99,11 +101,17 @@ Criação de Source
                                     +-----------+
 ```
 
-O `Source` expõe um status de processamento (`recebido` → `processando` → `pronto`/`falhou`), consultado pelo frontend até ficar disponível para seleção no chat.
+O `Source` expõe um status de processamento — recebido (`PENDING`) → processando (`PROCESSING`) → pronto (`READY`) / falhou (`FAILED`) — consultado pelo frontend até ficar disponível para seleção no chat.
 
 ### Seleção de sources no chat
 
 A busca semântica (RAG) de cada pergunta é escopada às sources que o usuário selecionou como ativas na conversa em que a pergunta foi feita, dentre as sources com status "pronto" do notebook — não existe um contexto implícito de "todas as sources". Essa seleção é definida por conversa (não redefinida a cada pergunta) e pode ser alterada pelo usuário ao longo dela, valendo para as mensagens seguintes.
+
+A seleção é **obrigatória e não pode ser vazia**: uma conversa nasce com pelo menos uma source ativa, e alterá-la substitui a lista sem nunca esvaziá-la. A ausência de default implícito é deliberada. Um default do tipo "todas as sources prontas" criaria uma segunda fonte de verdade para o escopo de busca — e a pior das duas, porque mudaria de significado sozinha: uma source que terminasse o processamento depois da criação da conversa entraria no escopo sem nenhuma ação do usuário, alterando silenciosamente o resultado de perguntas futuras. Com seleção explícita, o escopo é sempre uma lista materializada e persistida na conversa.
+
+Decorre daí que um notebook sem nenhuma source em status "pronto" não permite criar conversas.
+
+Quando uma source ativa é deletada, ela sai da seleção e a conversa é preservada com seu histórico. Se a seleção ficar vazia, a conversa passa a recusar novas mensagens até que outra source seja ativada. Esse estado é derivado da lista vazia, não um estado persistido a ser mantido em sincronia.
 
 ### Abstração de provedor de LLM
 
