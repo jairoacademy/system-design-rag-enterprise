@@ -39,11 +39,27 @@ projeto trabalhe com o mesmo setup.
 
 ### Plugins
 
-Declarados em `.claude/settings.json`, que traz tanto o marketplace de origem quanto a ativação — o
-arquivo se basta, sem precisar de `/plugin marketplace add` manual antes.
+Declarados em `.claude/settings.json`, que traz o marketplace de origem, a ativação e o modo padrão
+de cada um — o arquivo se basta, sem precisar de `/plugin marketplace add` manual antes.
 
 - **ponytail** (`ponytail@ponytail`) — força a solução mais simples que funciona: YAGNI, biblioteca
   padrão antes de dependência nova, uma linha antes de cinquenta.
+- **caveman** (`caveman@caveman`) — comprime a prosa do agente, preservando termo técnico, código,
+  comando e mensagem de erro exata.
+
+Os dois sobem sozinhos no `SessionStart` no nível definido por `PONYTAIL_DEFAULT_MODE` e
+`CAVEMAN_DEFAULT_MODE` (bloco `env` do mesmo arquivo). É config, não recado no CLAUDE.md: recado o
+leitor pode ignorar, e quem clona ficaria com um comportamento diferente do seu sem perceber.
+
+### Ferramentas de linha de comando
+
+- **rtk** (`rtk-ai/rtk`) — proxy de CLI que condensa a saída de comando antes de ela chegar ao
+  contexto. Não dá para instalar pelo `settings.json`, porque é binário; quem clona instala com
+  `brew install rtk`, `winget install rtk-ai.rtk` ou
+  `curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/heads/master/install.sh | sh`.
+
+O `.rtk/filters.toml` é versionado (filtros deste projeto) e o bloco `<!-- rtk-instructions -->` no
+fim deste arquivo é gerado por `rtk init` — não editar à mão, regenerar pelo comando.
 
 ### Skills
 
@@ -80,3 +96,14 @@ recebendo as correções do autor.
 ## Estado do Projeto
 
 Fundação (domínio, API e arquitetura) definida, e a implementação começou: `app/backend` já tem o scaffold inicial do backend (Spring Boot + Spring AI, dependências de PostgreSQL/pgvector já configuradas), sem lógica de negócio ainda. `app/frontend` e `infra/` ainda são placeholders vazios. Mudanças incrementais a partir daqui devem ser propostas via OpenSpec (`openspec/`), incluindo specs de comportamento (não mais dispensáveis via `skip_specs`, já que agora há um sistema em construção).
+
+<!-- rtk-instructions v2 -->
+# Command output
+
+Command output here is condensed to save tokens, keeping every signal and
+dropping costly noise. Treat it as the complete result: run commands
+normally, and batch related commands into one call to avoid extra turns.
+Truncated results state their recovery path in their own output. Re-run a
+command as `rtk proxy <cmd>` only when its result is unusable: empty when
+output was clearly expected, contradicting its exit code, or garbled.
+<!-- /rtk-instructions -->
