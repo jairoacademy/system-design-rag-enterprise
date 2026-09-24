@@ -51,6 +51,7 @@ arquivo se basta, sem precisar de `/plugin marketplace add` manual antes.
 symlink, nunca `.agents/`.
 
 - `openspec-*` — fluxo de spec-driven development deste projeto.
+- `java-quality-gate` — gate de cobertura (JaCoCo 100% linha) e mutação (pitest 100%) do backend.
 - `postgresql-optimization`, `java-springboot` — vindas do `github/awesome-copilot`.
 
 **Ao instalar uma skill de terceiro** (por exemplo `npx skills add <repo> --skill <nome>`), seguir
