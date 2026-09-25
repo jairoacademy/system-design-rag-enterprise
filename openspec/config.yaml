@@ -26,6 +26,50 @@ context: |
   declarar capabilities e gerar specs normalmente (não usar skip_specs, que só se justificava
   enquanto não havia sistema em construção).
 
+  Convenções do backend:
+
+  Stack: Java 21, Spring Boot 4.1.1 (Maven), Spring Data JPA, Spring Web MVC, Spring AI
+  (`spring-ai-starter-model-openai`, `spring-ai-starter-vector-store-pgvector`,
+  `spring-ai-vector-store-advisor`) e PostgreSQL + pgvector. Artifact: `spring-rag-enterprise`,
+  groupId `academy.jairo`.
+
+  Spring Security ainda não entra no `pom.xml`: só quando houver requisito de autenticação
+  especificado via OpenSpec.
+
+  Organização de pacotes:
+
+  Pacotes por camada técnica, não por feature. Todas as classes de uma camada vivem juntas sob um
+  único pacote de topo com o nome da camada:
+
+  ```
+  academy.jairo.ragenterprise.entity      <- todas as entidades JPA
+  academy.jairo.ragenterprise.enums       <- todos os enums, inclusive os usados por entidades
+  academy.jairo.ragenterprise.repository  <- todos os repositórios Spring Data
+  academy.jairo.ragenterprise.service     <- todos os serviços
+  academy.jairo.ragenterprise.controller  <- todos os controllers REST
+  ```
+
+  Entidades JPA:
+
+  Valem para toda classe em `academy.jairo.ragenterprise.entity`:
+
+  - Sem Lombok. Construtor explícito sem argumentos (exigido pela JPA) mais um construtor com todos
+    os atributos mapeados, na ordem de declaração dos campos, incluindo o id e qualquer campo de
+    relacionamento do lado dono (referência `@ManyToOne`, ou a coleção do lado dono de um
+    `@ManyToMany`/`@OneToMany`).
+  - Relacionamentos são unidirecionais por padrão: mapear apenas o lado dono/natural como campo Java.
+    Não adicionar o lado inverso com `mappedBy` a menos que um requisito específico precise navegar
+    diretamente a partir dele.
+  - `@Id @GeneratedValue` sem estratégia explícita (padrão AUTO da JPA), a menos que um requisito peça
+    uma estratégia específica.
+  - `@ManyToMany` usa `fetch = FetchType.EAGER`. `@ManyToOne` obrigatório usa
+    `fetch = FetchType.LAZY` e `optional = false`, sem `@JoinColumn` explícito a menos que o nome da
+    coluna precise fugir do padrão.
+  - Atributos obrigatórios usam `@Column(nullable = false)` (ou `optional = false` no `@ManyToOne`).
+    Atributos únicos acrescentam `@Column(unique = true)`.
+  - Atributos enum usam `@Enumerated(EnumType.STRING)`. Coleções são `Set<>`, inicializadas com
+    `new HashSet<>()`.
+
 # Per-artifact rules (optional)
 # Add custom rules for specific artifacts.
 # Example:
